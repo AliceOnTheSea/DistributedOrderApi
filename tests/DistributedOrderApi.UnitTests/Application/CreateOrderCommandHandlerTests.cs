@@ -1,6 +1,7 @@
 using DistributedOrderApi.Application.Common.Interfaces;
 using DistributedOrderApi.Application.Dtos;
 using DistributedOrderApi.Application.Orders.Commands;
+using DistributedOrderApi.Domain.Common;
 using DistributedOrderApi.Domain.Entities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,7 @@ public class CreateOrderCommandHandlerTests
         result.Should().NotBeEmpty();
         _mockDbSet.Verify(m => m.Add(It.IsAny<Order>()), Times.Once);
         _mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _mockDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IEnumerable<Domain.Common.IDomainEvent>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IEnumerable<IDomainEvent>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
