@@ -1,0 +1,36 @@
+name: Build & Test CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: Build, Unit Test & Integration Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore DistributedOrderApi.sln
+
+    - name: Build Solution
+      run: dotnet build DistributedOrderApi.sln --no-restore -c Release
+
+    - name: Run Unit Tests
+      run: dotnet test tests/DistributedOrderApi.UnitTests/DistributedOrderApi.UnitTests.csproj --no-build -c Release --logger "trx;LogFileName=unit_test_results.trx"
+
+    - name: Run Integration Tests
+      run: dotnet test tests/DistributedOrderApi.IntegrationTests/DistributedOrderApi.IntegrationTests.csproj --no-build -c Release --logger "trx;LogFileName=integration_test_results.trx"
+
+    - name: Build Docker Container
+      run: docker build -t distributed-order-api:ci .
