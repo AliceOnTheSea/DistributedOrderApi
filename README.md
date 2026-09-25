@@ -1,9 +1,9 @@
 # 🚀 DistributedOrderApi
 
-[![Build & Test CI Pipeline](https://github.com/your-username/DistributedOrderApi/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/DistributedOrderApi/actions)
+[![Build & Test CI Pipeline](https://github.com/AliceOnTheSea/DistributedOrderApi/actions/workflows/ci.yml/badge.svg)](https://github.com/AliceOnTheSea/DistributedOrderApi/actions)
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20CQRS-blue)
-![Docker](https://img.shields.io/badge/Container-Docker%20 Compose-2496ED?logo=docker)
+![Docker](https://img.shields.io/badge/Container-Docker%20Compose-2496ED?logo=docker)
 ![AWS Ready](https://img.shields.io/badge/Deployment-AWS%20ECS%20Fargate-FF9900?logo=amazon-aws)
 
 > **Production-Grade, Resilient C# / .NET 8 Microservice** built for enterprise e-commerce order processing. Showcasing Clean Architecture, CQRS with Dual ORM (EF Core + Dapper), Polly outbound HTTP resilience, background inventory sync workers, containerized deployment, and comprehensive automated test suites.
@@ -93,7 +93,7 @@ DistributedOrderApi/
 
 1. **Clone Repository**:
    ```bash
-   git clone https://github.com/your-username/DistributedOrderApi.git
+   git clone https://github.com/AliceOnTheSea/DistributedOrderApi.git
    cd DistributedOrderApi
    ```
 
