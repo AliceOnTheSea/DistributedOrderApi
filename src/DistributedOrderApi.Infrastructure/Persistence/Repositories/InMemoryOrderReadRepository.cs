@@ -30,7 +30,7 @@ public class InMemoryOrderReadRepository : IOrderReadRepository
         var orders = await _dbContext.Orders
             .Include(o => o.Items)
             .AsNoTracking()
-            .Where(o => o.Customer.CustomerId == customerId)
+            .Where(o => o.Customer != null && o.Customer.CustomerId == customerId)
             .OrderByDescending(o => o.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
@@ -47,7 +47,7 @@ public class InMemoryOrderReadRepository : IOrderReadRepository
         int pendingOrders = orders.Count(o => o.Status == OrderStatus.Draft || o.Status == OrderStatus.Submitted || o.Status == OrderStatus.Processing);
         int completedOrders = orders.Count(o => o.Status == OrderStatus.Completed);
         int cancelledOrders = orders.Count(o => o.Status == OrderStatus.Cancelled);
-        decimal totalRevenue = orders.Where(o => o.Status == OrderStatus.Completed).Sum(o => o.TotalAmount.Amount);
+        decimal totalRevenue = orders.Where(o => o.Status == OrderStatus.Completed && o.TotalAmount != null).Sum(o => o.TotalAmount.Amount);
 
         return new OrderSummaryDto(totalOrders, pendingOrders, completedOrders, cancelledOrders, totalRevenue);
     }
@@ -56,28 +56,32 @@ public class InMemoryOrderReadRepository : IOrderReadRepository
     {
         return new OrderDto(
             order.Id,
-            order.Customer.CustomerId,
-            order.Customer.FullName,
-            order.Customer.Email,
-            new AddressDto(
-                order.ShippingAddress.Street,
-                order.ShippingAddress.City,
-                order.ShippingAddress.State,
-                order.ShippingAddress.ZipCode,
-                order.ShippingAddress.Country),
+            order.Customer != null ? order.Customer.CustomerId : string.Empty,
+            order.Customer != null ? order.Customer.FullName : string.Empty,
+            order.Customer != null ? order.Customer.Email : string.Empty,
+            order.ShippingAddress != null
+                ? new AddressDto(
+                    order.ShippingAddress.Street,
+                    order.ShippingAddress.City,
+                    order.ShippingAddress.State,
+                    order.ShippingAddress.ZipCode,
+                    order.ShippingAddress.Country)
+                : new AddressDto(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty),
             order.Status.ToString(),
             order.PaymentStatus.ToString(),
-            order.TotalAmount.Amount,
-            order.TotalAmount.Currency,
+            order.TotalAmount != null ? order.TotalAmount.Amount : 0m,
+            order.TotalAmount != null ? order.TotalAmount.Currency : "USD",
             order.CreatedAtUtc,
             order.UpdatedAtUtc,
-            order.Items.Select(i => new OrderItemDto(
-                i.Id,
-                i.ProductId,
-                i.ProductName,
-                i.UnitPrice.Amount,
-                i.UnitPrice.Currency,
-                i.Quantity,
-                i.Subtotal.Amount)).ToList());
+            order.Items != null
+                ? order.Items.Select(i => new OrderItemDto(
+                    i.Id,
+                    i.ProductId,
+                    i.ProductName,
+                    i.UnitPrice != null ? i.UnitPrice.Amount : 0m,
+                    i.UnitPrice != null ? i.UnitPrice.Currency : "USD",
+                    i.Quantity,
+                    i.Subtotal != null ? i.Subtotal.Amount : 0m)).ToList()
+                : new List<OrderItemDto>());
     }
 }

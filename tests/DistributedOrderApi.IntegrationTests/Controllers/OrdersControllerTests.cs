@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using DistributedOrderApi.Application.Dtos;
+using DistributedOrderApi.Infrastructure.Persistence;
 using FluentAssertions;
 using Xunit;
 
@@ -38,6 +39,21 @@ public class OrdersControllerTests : IClassFixture<CustomWebApplicationFactory>
         var content = await response.Content.ReadFromJsonAsync<Dictionary<string, Guid>>();
         content.Should().ContainKey("id");
         content!["id"].Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Get_OrderById_SeededSubmittedOrder_Returns_200OK()
+    {
+        // Act
+        var response = await _client.GetAsync($"/api/v1/orders/{DemoDataSeeder.DemoOrderSubmittedId}");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var order = await response.Content.ReadFromJsonAsync<OrderDto>();
+        order.Should().NotBeNull();
+        order!.Id.Should().Be(DemoDataSeeder.DemoOrderSubmittedId);
+        order.Status.Should().Be("Submitted");
+        order.Items.Should().NotBeEmpty();
     }
 
     [Fact]
