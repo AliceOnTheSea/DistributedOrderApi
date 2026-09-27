@@ -82,7 +82,14 @@ DistributedOrderApi/
 ```
 
 ---
+## 🔌 Core API Endpoints (v1)
 
+| Method | Endpoint | Description | Pattern / Layer |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/orders` | Create a new order with stock validation | EF Core Command + Polly Vendor Check |
+| `GET` | `/api/v1/orders/{id}` | Retrieve order details & line items | Dapper Optimized Read Projection |
+| `PATCH` | `/api/v1/orders/{id}/status` | Transition order state machine | DDD Aggregate Root Invariants |
+| `GET` | `/health/ready` | Readiness probe (SQL Server + EF Context) | AWS ALB Target Group Health Check |
 ## 🚦 Getting Started
 
 ### Prerequisites
