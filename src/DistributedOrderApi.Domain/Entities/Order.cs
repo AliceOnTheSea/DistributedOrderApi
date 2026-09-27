@@ -42,6 +42,22 @@ public class Order : AggregateRoot
             DateTime.UtcNow));
     }
 
+    public static Order Create(Guid id, CustomerInfo customer, Address shippingAddress, string currency = "USD")
+    {
+        var order = new Order(customer, shippingAddress, currency);
+        order.Id = id;
+        return order;
+    }
+
+    public void AddLineItem(string productId, string productName, int quantity, Money unitPrice)
+    {
+        AddItem(productId, productName, unitPrice, quantity);
+    }
+
+    public void Submit() => SubmitOrder();
+    public void StartProcessing() => MarkProcessing();
+    public void Complete() => CompleteOrder();
+
     public void AddItem(string productId, string productName, Money unitPrice, int quantity)
     {
         if (Status != OrderStatus.Draft && Status != OrderStatus.Submitted)

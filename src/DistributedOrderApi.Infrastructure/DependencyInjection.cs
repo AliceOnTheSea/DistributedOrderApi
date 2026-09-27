@@ -17,17 +17,26 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=localhost,1433;Database=DistributedOrderDb;User Id=sa;Password=Your_password123!;TrustServerCertificate=True;";
+        var isDemoMode = configuration.GetValue<bool>("DemoMode", true) || configuration.GetValue<bool>("UseInMemoryDatabase");
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        // EF Core Registration
-        services.AddDbContext<OrderDbContext>(options =>
-            options.UseSqlServer(connectionString, b => b.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName)));
+        if (isDemoMode || string.IsNullOrWhiteSpace(connectionString))
+        {
+            services.AddDbContext<OrderDbContext>(options =>
+                options.UseInMemoryDatabase("DistributedOrderDemoDb"));
+
+            services.AddScoped<IOrderReadRepository, InMemoryOrderReadRepository>();
+        }
+        else
+        {
+            services.AddDbContext<OrderDbContext>(options =>
+                options.UseSqlServer(connectionString, b => b.MigrationsAssembly(typeof(OrderDbContext).Assembly.FullName)));
+
+            services.AddScoped<IOrderReadRepository, OrderReadRepository>();
+        }
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<OrderDbContext>());
-
-        // Dapper Repository Registration
-        services.AddScoped<IOrderReadRepository, OrderReadRepository>();
+        services.AddScoped<DemoDataSeeder>();
 
         // Domain Event Dispatcher Registration
         services.AddScoped<IEventDispatcher, EventDispatcher>();

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: distributed-order-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DemoMode
+        value: "true"
+      - key: UseInMemoryDatabase
+        value: "true"
+    healthCheckPath: /health/live

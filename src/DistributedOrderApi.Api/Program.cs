@@ -9,12 +9,17 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Configure Serilog structured logging
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
     .WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter()));
+
+var isDemoMode = builder.Configuration.GetValue<bool>("DemoMode", true);
 
 // Register Layer Services
 builder.Services.AddApplicationServices();
@@ -52,18 +57,30 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Health Checks Setup
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<OrderDbContext>("database_efcore")
-    .AddSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Server=localhost,1433;Database=DistributedOrderDb;User Id=sa;Password=Your_password123!;TrustServerCertificate=True;",
-        name: "sqlserver_connection");
+var healthChecksBuilder = builder.Services.AddHealthChecks()
+    .AddDbContextCheck<OrderDbContext>("database_efcore");
+
+if (!isDemoMode)
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        healthChecksBuilder.AddSqlServer(connectionString, name: "sqlserver_connection");
+    }
+}
 
 var app = builder.Build();
 
-// Auto-Apply Migrations on Startup for dev environment
-using (var scope = app.Services.CreateScope())
+// Auto-Apply Migrations & Demo Seeding on Startup
+if (isDemoMode)
 {
+    using var scope = app.Services.CreateScope();
+    var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+    await seeder.SeedAsync();
+}
+else
+{
+    using var scope = app.Services.CreateScope();
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
@@ -82,13 +99,14 @@ using (var scope = app.Services.CreateScope())
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("EnableSwagger"))
+if (app.Environment.IsDevelopment() || isDemoMode)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "DistributedOrderApi v1.0");
-        c.RoutePrefix = string.Empty; // Serve swagger at root URL
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "DistributedOrderApi v1");
+        c.RoutePrefix = string.Empty; // Serves Swagger UI directly at /
+        c.DocumentTitle = "DistributedOrderApi - Live Demo";
     });
 }
 

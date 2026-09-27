@@ -21,8 +21,8 @@ RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 # Stage 2: Production Runtime Target
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
 
 # Non-root security user
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app

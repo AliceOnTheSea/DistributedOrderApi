@@ -16,6 +16,11 @@ public class CustomerInfo : ValueObject
         Email = string.Empty;
     }
 
+    public CustomerInfo(string fullName, string email)
+        : this($"CUST-{Guid.NewGuid().ToString()[..8].ToUpper()}", fullName, email)
+    {
+    }
+
     public CustomerInfo(string customerId, string fullName, string email)
     {
         if (string.IsNullOrWhiteSpace(customerId)) throw new DomainException("Customer ID is required.");
