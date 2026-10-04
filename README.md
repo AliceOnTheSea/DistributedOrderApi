@@ -32,6 +32,7 @@ graph TD
         Infra --> Polly[Polly Resilient HttpClient]
         Polly --> External[Vendor Service API]
         Infra --> Worker[VendorInventorySyncWorker BackgroundService]
+        Infra --> LLM[ILlmSearchFilterService - LLM Translation]
         Infra --> Seeder[DemoDataSeeder Startup]
     end
 ```
@@ -58,7 +59,11 @@ graph TD
 5. **Background Worker Processing**:
    - `VendorInventorySyncWorker` utilizes .NET `BackgroundService` (`IHostedService`) to execute periodic inventory sync loops with vendor catalogs without blocking API throughput.
 
-6. **Cross-Cutting Enterprise Concerns**:
+6. **LLM Natural-Language Order Search**:
+   - Integrates [`ILlmSearchFilterService`](file:///Users/alicec/.gemini/antigravity-ide/scratch/DistributedOrderApi/src/DistributedOrderApi.Application/Common/Interfaces/ILlmSearchFilterService.cs) to parse free-text queries into strongly typed [`OrderSearchFilter`](file:///Users/alicec/.gemini/antigravity-ide/scratch/DistributedOrderApi/src/DistributedOrderApi.Application/Dtos/OrderSearchFilter.cs) contracts (`Status`, `MinAmount`, `MaxAmount`, `CustomerId`, `StartDate`, `EndDate`, `SearchKeyword`).
+   - Executes queries cleanly via [`IOrderReadRepository.SearchOrdersAsync`](file:///Users/alicec/.gemini/antigravity-ide/scratch/DistributedOrderApi/src/DistributedOrderApi.Application/Common/Interfaces/IOrderReadRepository.cs#L10), preserving CQRS boundaries without raw SQL injection vulnerabilities.
+
+7. **Cross-Cutting Enterprise Concerns**:
    - **Structured Logging**: Serilog configured with Compact JSON formatting and HTTP log context.
    - **Traceability**: `CorrelationIdMiddleware` propagates and injects `X-Correlation-ID` headers across request contexts.
    - **Error Handling**: RFC 7807 `ProblemDetails` standard exception formatting.
