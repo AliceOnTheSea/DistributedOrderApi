@@ -109,4 +109,22 @@ public class OrdersController : ControllerBase
         await _mediator.Send(command, cancellationToken);
         return Ok(new { message = $"Order {id} cancelled successfully." });
     }
+
+    /// <summary>
+    /// Performs a natural language query search for orders using LLM text-to-structured filter translation.
+    /// </summary>
+    [HttpPost("search/natural")]
+    [ProducesResponseType(typeof(NaturalSearchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> NaturalLanguageSearch([FromBody] NaturalSearchRequest request, CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Query))
+        {
+            return BadRequest(new { message = "Query cannot be empty." });
+        }
+
+        var query = new NaturalLanguageSearchQuery(request.Query);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }

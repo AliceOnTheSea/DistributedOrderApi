@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text;
 using Dapper;
 using DistributedOrderApi.Application.Common.Interfaces;
 using DistributedOrderApi.Application.Dtos;
@@ -116,5 +117,91 @@ public class OrderReadRepository : IOrderReadRepository
             new CommandDefinition(sql, cancellationToken: cancellationToken));
 
         return summary ?? new OrderSummaryDto(0, 0, 0, 0, 0);
+    }
+
+    public async Task<IReadOnlyList<OrderDto>> SearchOrdersAsync(OrderSearchFilter filter, CancellationToken cancellationToken = default)
+    {
+        var sb = new StringBuilder(@"
+            SELECT 
+                o.Id, o.CustomerId, o.CustomerName, o.CustomerEmail,
+                o.ShippingStreet AS Street, o.ShippingCity AS City, o.ShippingState AS State, 
+                o.ShippingZipCode AS ZipCode, o.ShippingCountry AS Country,
+                o.Status, o.PaymentStatus, o.TotalAmount, o.Currency,
+                o.CreatedAtUtc, o.UpdatedAtUtc,
+                i.Id, i.ProductId, i.ProductName, i.UnitPrice, i.Currency, i.Quantity
+            FROM Orders o
+            LEFT JOIN OrderItems i ON o.Id = i.OrderId
+            WHERE 1=1 ");
+
+        var parameters = new DynamicParameters();
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            sb.Append(" AND o.Status = @Status ");
+            parameters.Add("Status", filter.Status);
+        }
+
+        if (filter.MinAmount.HasValue)
+        {
+            sb.Append(" AND o.TotalAmount >= @MinAmount ");
+            parameters.Add("MinAmount", filter.MinAmount.Value);
+        }
+
+        if (filter.MaxAmount.HasValue)
+        {
+            sb.Append(" AND o.TotalAmount <= @MaxAmount ");
+            parameters.Add("MaxAmount", filter.MaxAmount.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.CustomerId))
+        {
+            sb.Append(" AND o.CustomerId = @CustomerId ");
+            parameters.Add("CustomerId", filter.CustomerId);
+        }
+
+        if (filter.StartDate.HasValue)
+        {
+            sb.Append(" AND o.CreatedAtUtc >= @StartDate ");
+            parameters.Add("StartDate", filter.StartDate.Value);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            sb.Append(" AND o.CreatedAtUtc <= @EndDate ");
+            parameters.Add("EndDate", filter.EndDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchKeyword))
+        {
+            sb.Append(" AND (o.CustomerName LIKE @Keyword OR o.CustomerEmail LIKE @Keyword OR i.ProductName LIKE @Keyword) ");
+            parameters.Add("Keyword", $"%{filter.SearchKeyword}%");
+        }
+
+        sb.Append(" ORDER BY o.CreatedAtUtc DESC ");
+
+        using var connection = CreateConnection();
+        var orderDictionary = new Dictionary<Guid, OrderDto>();
+
+        await connection.QueryAsync<OrderDto, AddressDto, OrderItemDto, OrderDto>(
+            new CommandDefinition(sb.ToString(), parameters, cancellationToken: cancellationToken),
+            (order, address, item) =>
+            {
+                if (!orderDictionary.TryGetValue(order.Id, out var currentOrder))
+                {
+                    currentOrder = order with { ShippingAddress = address, Items = new List<OrderItemDto>() };
+                    orderDictionary.Add(currentOrder.Id, currentOrder);
+                }
+
+                if (item != null && item.Id != Guid.Empty)
+                {
+                    var itemWithSubtotal = item with { Subtotal = item.UnitPrice * item.Quantity };
+                    currentOrder.Items.Add(itemWithSubtotal);
+                }
+
+                return currentOrder;
+            },
+            splitOn: "Street,Id");
+
+        return orderDictionary.Values.ToList();
     }
 }

@@ -65,4 +65,23 @@ public class OrdersControllerTests : IClassFixture<CustomWebApplicationFactory>
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task Post_NaturalLanguageSearch_ValidQuery_Returns_200OK_WithParsedFilter()
+    {
+        // Arrange
+        var request = new NaturalSearchRequest("orders over $200");
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/orders/search/natural", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<NaturalSearchResponse>();
+        result.Should().NotBeNull();
+        result!.Explanation.Should().NotBeNullOrEmpty();
+        result.Filter.Should().NotBeNull();
+        result.Filter.MinAmount.Should().Be(200m);
+        result.Orders.Should().NotBeNull();
+    }
 }

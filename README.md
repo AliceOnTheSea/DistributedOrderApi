@@ -95,8 +95,36 @@ DistributedOrderApi/
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/orders` | Create a new order with stock validation | EF Core Command + Polly Vendor Check |
 | `GET` | `/api/v1/orders/{id}` | Retrieve order details & line items | Dapper / InMemory Read Projection |
-| `PATCH` | `/api/v1/orders/{id}/status` | Transition order state machine | DDD Aggregate Root Invariants |
+| `POST` | `/api/v1/orders/search/natural` | Natural language query search for orders | LLM Query Parser + CQRS Read Repository |
+| `PUT` | `/api/v1/orders/{id}/status` | Transition order state machine | DDD Aggregate Root Invariants |
 | `GET` | `/health/ready` | Readiness probe (SQL Server / EF Context) | AWS ALB / Render Target Group Health Check |
+
+### 🤖 LLM-Powered Natural Language Search (`POST /api/v1/orders/search/natural`)
+Translates free-text natural language requests into structured order filter schemas (`OrderStatus`, `MinAmount`, `MaxAmount`, `CustomerId`, date ranges, search keywords) and executes them through existing high-performance CQRS query repositories.
+
+**Example Request:**
+```json
+{
+  "query": "all delayed orders over $500 from last week"
+}
+```
+
+**Example Response:**
+```json
+{
+  "explanation": "Showing orders with status=Processing, total >= $500, created after 2026-09-27 based on query: \"all delayed orders over $500 from last week\".",
+  "filter": {
+    "status": "Processing",
+    "minAmount": 500.0,
+    "maxAmount": null,
+    "customerId": null,
+    "startDate": "2026-09-27T14:48:00Z",
+    "endDate": null,
+    "searchKeyword": null
+  },
+  "orders": [...]
+}
+```
 
 ---
 

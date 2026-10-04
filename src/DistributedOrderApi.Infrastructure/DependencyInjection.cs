@@ -38,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<OrderDbContext>());
         services.AddScoped<DemoDataSeeder>();
 
+        // LLM Search Filter Service Registration
+        services.AddScoped<ILlmSearchFilterService, MockLlmSearchFilterService>();
+
         // Domain Event Dispatcher Registration
         services.AddScoped<IEventDispatcher, EventDispatcher>();
 

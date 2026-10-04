@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DistributedOrderApi.Application\DistributedOrderApi.Application.csproj" />
     <ProjectReference Include="..\..\src\DistributedOrderApi.Domain\DistributedOrderApi.Domain.csproj" />
+    <ProjectReference Include="..\..\src\DistributedOrderApi.Infrastructure\DistributedOrderApi.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -52,6 +52,58 @@ public class InMemoryOrderReadRepository : IOrderReadRepository
         return new OrderSummaryDto(totalOrders, pendingOrders, completedOrders, cancelledOrders, totalRevenue);
     }
 
+    public async Task<IReadOnlyList<OrderDto>> SearchOrdersAsync(OrderSearchFilter filter, CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Orders
+            .Include(o => o.Items)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<OrderStatus>(filter.Status, true, out var status))
+        {
+            query = query.Where(o => o.Status == status);
+        }
+
+        if (filter.MinAmount.HasValue)
+        {
+            query = query.Where(o => o.TotalAmount != null && o.TotalAmount.Amount >= filter.MinAmount.Value);
+        }
+
+        if (filter.MaxAmount.HasValue)
+        {
+            query = query.Where(o => o.TotalAmount != null && o.TotalAmount.Amount <= filter.MaxAmount.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.CustomerId))
+        {
+            query = query.Where(o => o.Customer != null && o.Customer.CustomerId == filter.CustomerId);
+        }
+
+        if (filter.StartDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedAtUtc >= filter.StartDate.Value);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedAtUtc <= filter.EndDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchKeyword))
+        {
+            var kw = filter.SearchKeyword.ToLower();
+            query = query.Where(o =>
+                (o.Customer != null && (o.Customer.FullName.ToLower().Contains(kw) || o.Customer.Email.ToLower().Contains(kw))) ||
+                o.Items.Any(i => i.ProductName.ToLower().Contains(kw) || i.ProductId.ToLower().Contains(kw)));
+        }
+
+        var orders = await query
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        return orders.Select(MapToDto).ToList();
+    }
+
     private static OrderDto MapToDto(Order order)
     {
         return new OrderDto(
